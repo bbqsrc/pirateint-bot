@@ -13,6 +13,11 @@ client = new irc.Client(config.network, config.name, {
     channels: config.channels
 });
 
+client.addListener('error', function(err) {
+    console.error("There was an error.");
+    console.error(err);
+});
+
 var getRecentWikiChanges = function getRecentWikiChangesPartial(baseURL) {
     return new Promise(function(resolve, reject) {
         var req = request(baseURL + "/w/api.php?hidebots=1&days=7&limit=10&translations=filter&action=feedrecentchanges&feedformat=atom"),

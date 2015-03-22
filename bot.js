@@ -20,7 +20,7 @@ client.addListener('error', function(err) {
 
 var getRecentWikiChanges = function getRecentWikiChangesPartial(baseURL) {
     return new Promise(function(resolve, reject) {
-        var req = request(baseURL + "/w/api.php?hidebots=1&days=7&limit=10&translations=filter&action=feedrecentchanges&feedformat=atom"),
+        var req = request(baseURL + "/w/api.php?hidebots=1&hideminor=1&days=1&limit=10&translations=filter&action=feedrecentchanges&feedformat=atom"),
             fp = new feedparser();
 
         req.on('response', function(res) {
@@ -92,6 +92,15 @@ var getRecentForumPosts = function getRecentForumPostsPartial(baseURL) {
         });
     });
 }.bind(null, config.discussURL);
+
+function isRelevantWikiChange(page) {
+    // Don't show new users
+    if (/User account .*? was created/.test(page.summary)) {
+        return false;
+    }
+
+    return true;
+}
 
 function formatWikiPage(page) {
     var author = page.author,
@@ -206,9 +215,11 @@ client.addListener('connect', function() {
                     let formatted = formatWikiPage(change);
                     console.log(new Date, formatted);
 
-                    config.channels.forEach(function(channel) {
-                        client.say(channel, formatted);
-                    });
+                    if (isRelevantWikiChange(change)) {
+                        config.channels.forEach(function(channel) {
+                            client.say(channel, formatted);
+                        });
+                    }
 
                     seenPages.add(change.guid);
                 });

@@ -73,8 +73,8 @@ client.addListener('connect', function() {
     };
 
     let forumCb = function(post) {
-        let v = "[forum] " +
-                post.topic_slug + " - @" +
+        let v = "[forum] @" +
+                //post.topic_slug + " - @" +
                 post.username + ": ";
 
         let raw = post.raw;

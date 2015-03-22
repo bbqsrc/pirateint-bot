@@ -1,0 +1,7 @@
+{
+  "network": "irc.pirateirc.net",
+  "name": "pirateint",
+  "channels": ["#pirateint"],
+  "wikiURL": "http://wiki.pirateint.org",
+  "discussURL": "https://discuss.pirateint.org"
+}

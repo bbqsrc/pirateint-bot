@@ -2,20 +2,20 @@
 
 var request = require("request"),
     feedparser = require("feedparser"),
+    config = require("./config.json"),
     irc = require("irc"),
 
-    client,
-    channels;
+    client;
 
-channels = ["#pirateint"];
+console.log(config);
 
-client = new irc.Client('irc.pirateirc.net', 'pirateint', {
-    channels: channels
+client = new irc.Client(config.network, config.name, {
+    channels: config.channels
 });
 
-function getRecentWikiChanges() {
+var getRecentWikiChanges = function getRecentWikiChangesPartial(baseURL) {
     return new Promise(function(resolve, reject) {
-        var req = request("http://wiki.pirateint.org/w/api.php?hidebots=1&days=7&limit=10&translations=filter&action=feedrecentchanges&feedformat=atom"),
+        var req = request(baseURL + "/w/api.php?hidebots=1&days=7&limit=10&translations=filter&action=feedrecentchanges&feedformat=atom"),
             fp = new feedparser();
 
         req.on('response', function(res) {
@@ -33,11 +33,11 @@ function getRecentWikiChanges() {
             resolve(items);
         });
     });
-}
+}.bind(null, config.wikiURL);
 
-function getForumCategories() {
+var getForumCategories = function getForumCategoriesPartial(baseURL) {
     return new Promise(function(resolve, reject) {
-        var req = request("https://discuss.pirateint.org/categories.json", function(err, res, body) {
+        var req = request(baseURL + "/categories.json", function(err, res, body) {
             if (err) {
                 return reject(err);
             }
@@ -52,11 +52,11 @@ function getForumCategories() {
             resolve(out);
         });
     });
-}
+}.bind(null, config.discussURL);
 
-function getLatestForumTopics(callback) {
+var getLatestForumTopics = function getLatestForumTopicsPartial(baseURL) {
     return new Promise(function(resolve, reject) {
-        var req = request("https://discuss.pirateint.org/latest.json", function(err, res, body) {
+        var req = request(baseURL + "/latest.json", function(err, res, body) {
             if (err) {
                 return reject(err);
             }
@@ -74,11 +74,11 @@ function getLatestForumTopics(callback) {
             resolve(out);
         });
     });
-}
+}.bind(null, config.discussURL);
 
-function getRecentForumPosts() {
+var getRecentForumPosts = function getRecentForumPostsPartial(baseURL) {
     return new Promise(function(resolve, reject) {
-        var req = request("https://discuss.pirateint.org/posts.json", function(err, res, body) {
+        var req = request(baseURL + "/posts.json", function(err, res, body) {
             if (err) {
                 return reject(err);
             }
@@ -86,12 +86,7 @@ function getRecentForumPosts() {
             return resolve(JSON.parse(body).latest_posts);
         });
     });
-}
-
-var seenPages = new Set();
-var seenPosts = new Set();
-var seenTopics;
-var seenCategories;
+}.bind(null, config.discussURL);
 
 function formatWikiPage(page) {
     var author = page.author,
@@ -103,7 +98,7 @@ function formatWikiPage(page) {
             author + ") - " + link);
 }
 
-function formatForumPost(knownTopics, knownCategories, post) {
+function formatForumPostPartial(knownTopics, knownCategories, post) {
     let v = "";
 
     if (knownTopics[post.topic_id]) {
@@ -130,7 +125,7 @@ function formatForumPost(knownTopics, knownCategories, post) {
 }
 
 function firstRun() {
-return Promise.all([
+    return Promise.all([
         getRecentWikiChanges(),
         getForumCategories(),
         getLatestForumTopics(),
@@ -156,13 +151,16 @@ return Promise.all([
     });
 }
 
+var seenPages = new Set();
+var seenPosts = new Set();
+var seenTopics;
+var seenCategories;
+
 client.addListener('connect', function() {
     firstRun().then(function() {
         console.log(new Date, "Init'd.");
 
-        let fmtForumPostLocal = formatForumPost.bind(null,
-                                                     seenTopics,
-                                                     seenCategories);
+        let formatForumPost = formatForumPostPartial.bind(null, seenTopics, seenCategories);
 
         setInterval(function() {
             console.log(new Date, "getting new data");
@@ -185,10 +183,10 @@ client.addListener('connect', function() {
                         return;
                     }
 
-                    let formatted = fmtForumPostLocal(post);
+                    let formatted = formatForumPost(post);
                     console.log(new Date, formatted);
 
-                    channels.forEach(function(channel) {
+                    config.channels.forEach(function(channel) {
                         client.say(channel, formatted);
                     });
 
@@ -203,7 +201,7 @@ client.addListener('connect', function() {
                     let formatted = formatWikiPage(change);
                     console.log(new Date, formatted);
 
-                    channels.forEach(function(channel) {
+                    config.channels.forEach(function(channel) {
                         client.say(channel, formatted);
                     });
 

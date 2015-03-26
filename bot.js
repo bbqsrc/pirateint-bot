@@ -130,7 +130,8 @@ function formatForumPostPartial(knownTopics, knownCategories, post) {
 
     v += '"' + raw.replace(/[\r\n]/g, " ") + '" - ';
 
-    v += "https://discuss.pirateint.org/t/" +
+    // TODO not add config here, bind in
+    v += config.discussURL + "/t/" +
          post.topic_slug + "/" +
          post.topic_id + "/" +
          post.post_number;
